@@ -3,4 +3,5 @@
 lib
 cmake-build-debug
 sample_traces
+restricted_traces
 scripts
