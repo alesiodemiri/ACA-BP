@@ -192,7 +192,7 @@ def execute_trace(my_trace_path):
 
     do_process = True
     my_run_name = f'{my_wl}/{run_name}'
-    exec_cmd = f'./cbp {my_trace_path}'
+    exec_cmd = f'./cmake-build-debug/cbp {my_trace_path}'
     op_file = f'{results_dir}/{my_wl}/{run_name}.log'
     if os.path.exists(op_file):
         #print(f"OP file:{op_file} already exists. Not running again!")
