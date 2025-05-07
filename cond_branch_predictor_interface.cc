@@ -19,6 +19,8 @@
 #include "lib/sim_common_structs.h"
 #include "cbp2016_tage_sc_l.h"
 #include "my_cond_branch_predictor.h"
+#include "tage/tage.h"
+
 #include <cassert>
 
 //
@@ -55,7 +57,7 @@ bool get_cond_dir_prediction(uint64_t seq_no, uint8_t piece, uint64_t pc, const 
 {
     const bool tage_sc_l_pred =  cbp2016_tage_sc_l.predict(seq_no, piece, pc);
     const bool my_prediction = cond_predictor_impl.predict(seq_no, piece, pc, tage_sc_l_pred);
-    return my_prediction;
+    return tage.predict(pc, piece);
 }
 
 //
@@ -146,6 +148,7 @@ void notify_instr_execute_resolve(uint64_t seq_no, uint8_t piece, uint64_t pc, c
             const uint64_t _next_pc = _exec_info.next_pc;
             cbp2016_tage_sc_l.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
             cond_predictor_impl.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
+            tage.update(pc, piece, _resolve_dir);
         }
         else
         {

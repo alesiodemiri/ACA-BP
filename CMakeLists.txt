@@ -17,10 +17,10 @@ set(LIB_DIR ${CMAKE_SOURCE_DIR}/lib)
 set(LIBCBP_PATH ${LIB_DIR}/libcbp.a)
 
 # Source files for main cbp executable
-set(SOURCES
+file(GLOB_RECURSE SOURCES
         cond_branch_predictor_interface.cc
         my_cond_branch_predictor.cc
-
+        tage/*.h
 )
 
 # Include directories
