@@ -35,7 +35,7 @@ class Table {
         }
     }
 
-    bool allocate(const uint64_t hash) {
+    [[nodiscard]] bool can_allocate(const uint64_t hash) const {
         const std::bitset<IDX_LEN> index(hash);
         const std::bitset<TAG_LEN> tag(hash >> IDX_LEN);
 
@@ -43,11 +43,21 @@ class Table {
 
         // check if there is a useless entry and allocate it
         if (table[index.to_ullong()].u.get() == 0) {
-            table[index.to_ullong()].tag = tag;
-            table[index.to_ullong()].prediction = FSM();
             return true;
         }
         return false;
+
+    }
+
+    void allocate(const uint64_t hash) {
+        const std::bitset<IDX_LEN> index(hash);
+        const std::bitset<TAG_LEN> tag(hash >> IDX_LEN);
+
+        if(!can_allocate(hash)) std::cerr << "Can't allocate table entry" << std::endl;
+
+        // allocate the new entry
+        table[index.to_ullong()].tag = tag;
+        table[index.to_ullong()].prediction = FSM();
     }
 
     void decrease_u(const uint64_t hash) {

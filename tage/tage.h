@@ -2,6 +2,8 @@
 #define TAGE_H
 
 #include <ostream>
+#include <cstdlib>
+#include <ctime>
 
 #include "parameters.h"
 #include "table.h"
@@ -136,10 +138,54 @@ class TAGE {
 
     }
 
+    void entry_allocation_routine(const uint64_t seq_no, const uint8_t piece, const Prediction& prediction) {
+        int idx = prediction.provider_idx + 1;
+        std::vector<int> available_tables{};
+
+        bool allocation_success = true;
+        for(; idx < N_TABLES; idx++) {
+            // compute the hash
+            uint64_t h = hash(seq_no, GHR, T_GHR_LEN[idx]);
+
+            // add the table to the list if it is available for allocating a new entry
+            if(tables[idx].can_allocate(h))
+                available_tables.emplace_back(idx);
+        }
+
+        if (available_tables.empty()) allocation_success = false;
+
+        if (allocation_success) {
+            // in case more than one table is available, only consider the first 2.
+            // randomly select one of the two, with the first having twice the probability of being chosen
+            std::srand(std::time(nullptr));
+            const int random_number = std::rand() % 3;
+
+            int chosen_table_idx;
+            if(random_number <= 1) {
+                chosen_table_idx = available_tables.at(0);
+            } else {
+                // % available_tables.size() is necessary so that if the vector contains only 1 entry that one is always chosen
+                chosen_table_idx = available_tables.at(1 % available_tables.size());
+            }
+
+            // allocate the entry
+            const uint64_t h = hash(seq_no, GHR, T_GHR_LEN[chosen_table_idx]);
+            tables[chosen_table_idx].allocate(h);
+
+
+        } else {
+            // if the allocation did not succeed in any of the "bigger" tables, decrease the u in those tables
+            for(int i = prediction.provider_idx + 1; i < N_TABLES; i++) {
+                uint64_t h = hash(seq_no, GHR, T_GHR_LEN[i]);
+                tables[i].decrease_u(h);
+            }
+        }
+    }
+
 public:
 
     bool predict(const uint64_t seq_no, const uint8_t /* piece */ ) {
-        Prediction p = get_prediction(seq_no);
+        const Prediction p = get_prediction(seq_no);
 
         if (p.provider_is_weak)
             return p.alt_pred;
@@ -149,7 +195,7 @@ public:
 
     void update(const uint64_t seq_no, const uint8_t piece, const bool actual_outcome) {
 
-        Prediction prediction = get_prediction(seq_no);
+        const Prediction prediction = get_prediction(seq_no);
         base_predictor->update(seq_no, piece, actual_outcome);
 
         if (prediction.provider_idx == DEFAULT_PROVIDER) {
@@ -158,11 +204,7 @@ public:
             if (prediction.provider_pred != actual_outcome) {
 
                 // try to allocate a new entry
-                for(int idx = 0; idx < N_TABLES; idx++) {
-                    uint64_t h = hash(seq_no, GHR, T_GHR_LEN[idx]);
-                    const bool allocation_success = tables[idx].allocate(h);
-                    if (allocation_success) break;
-                }
+                entry_allocation_routine(seq_no, piece, prediction);
             }
 
             return;
@@ -197,29 +239,13 @@ public:
         // the overall prediction is incorrect
         int idx = prediction.provider_idx + 1;
         if (prediction.provider_pred != actual_outcome) {
-
             uint64_t h = hash(seq_no, GHR, T_GHR_LEN[prediction.provider_idx]);
             TableEntry& provider_entry = tables[prediction.provider_idx].get(h);
 
-            //if (actual_outcome)
-                provider_entry.prediction.update_prediction(actual_outcome);
-            //else
-            //    provider_entry.prediction.decrease();
+            provider_entry.prediction.update_prediction(actual_outcome);
 
             // try to allocate a new entry
-            for(; idx < N_TABLES; idx++) {
-                uint64_t h = hash(seq_no, GHR, T_GHR_LEN[idx]);
-                const bool allocation_success = tables[idx].allocate(h);
-                if (allocation_success) break;
-            }
-        }
-
-        // if the allocation did not succeed in any of the "bigger" tables, decrease the u in those tables
-        if (idx >= N_TABLES) {
-            for(int i = prediction.provider_idx + 1; i < N_TABLES; i++) {
-                uint64_t h = hash(seq_no, GHR, T_GHR_LEN[i]);
-                tables[i].decrease_u(h);
-            }
+            entry_allocation_routine(seq_no, piece, prediction);
         }
 
         num_branches = (num_branches + 1) % RESET_INTERVAL;
