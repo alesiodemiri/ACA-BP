@@ -4,6 +4,7 @@
 #include <array>
 #include <bitset>
 #include <cassert>
+#include <iostream>
 
 #include "2bitFSM.h"
 #include "parameters.h"

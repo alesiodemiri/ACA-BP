@@ -17,11 +17,36 @@
 // This file provides a sample predictor integration based on the interface provided.
 
 #include "lib/sim_common_structs.h"
-#include "cbp2016_tage_sc_l.h"
-#include "my_cond_branch_predictor.h"
 #include "tage/tage.h"
 
 #include <cassert>
+
+void printPredictorConstants() {
+    std::cout << "\n=================== Predictor constants ===================" << std::endl;
+    std::cout << "K = " << static_cast<int>(K) << '\n';
+    std::cout << "DEFAULT_SIZE = " << DEFAULT_SIZE << '\n';
+    std::cout << "N_TABLES = " << static_cast<int>(N_TABLES) << '\n';
+
+    std::cout << "T_GHR_LEN = { ";
+    for (size_t i = 0; i < N_TABLES; ++i) {
+        std::cout << T_GHR_LEN[i];
+        if (i < N_TABLES - 1) std::cout << ", ";
+    }
+    std::cout << "}\n";
+
+    std::cout << "GHR_LEN = " << GHR_LEN << '\n';
+    std::cout << "IDX_LEN = " << static_cast<int>(IDX_LEN) << '\n';
+    std::cout << "TAG_LEN = " << static_cast<int>(TAG_LEN) << '\n';
+    std::cout << "T_SIZE = " << T_SIZE << '\n';
+    std::cout << "RESET_INTERVAL = " << RESET_INTERVAL << "\n\n";
+
+    std::cout << "TOT_SIZE = " << ((DEFAULT_SIZE * 2) + // size of the base predictor table (2 bits for a FSM)
+                                    (TAG_LEN + 2 + 2) * // size of a table entry (2 bits FSM, 2 bits for u)
+                                        N_TABLES * T_SIZE) / 8000
+    << " Kilo Bytes (192 MAX)\n";
+
+    std::cout << "=================== =================== ===================\n" << std::endl;
+}
 
 //
 // beginCondDirPredictor()
@@ -31,9 +56,10 @@
 //
 void beginCondDirPredictor()
 {
+    printPredictorConstants();
     // setup sample_predictor
-    cbp2016_tage_sc_l.setup();
-    cond_predictor_impl.setup();
+    //cbp2016_tage_sc_l.setup();
+    //cond_predictor_impl.setup();
 }
 
 //
@@ -55,8 +81,8 @@ void notify_instr_fetch(uint64_t seq_no, uint8_t piece, uint64_t pc, const uint6
 //
 bool get_cond_dir_prediction(uint64_t seq_no, uint8_t piece, uint64_t pc, const uint64_t pred_cycle)
 {
-    const bool tage_sc_l_pred =  cbp2016_tage_sc_l.predict(seq_no, piece, pc);
-    const bool my_prediction = cond_predictor_impl.predict(seq_no, piece, pc, tage_sc_l_pred);
+    //const bool tage_sc_l_pred =  cbp2016_tage_sc_l.predict(seq_no, piece, pc);
+    //const bool my_prediction = cond_predictor_impl.predict(seq_no, piece, pc, tage_sc_l_pred);
     return tage.predict(pc, piece);
 }
 
@@ -98,12 +124,12 @@ void spec_update(uint64_t seq_no, uint8_t piece, uint64_t pc, InstClass inst_cla
 
     if(inst_class == InstClass::condBranchInstClass)
     {
-        cbp2016_tage_sc_l.history_update(seq_no, piece, pc, br_type, pred_dir, resolve_dir, next_pc);
-        cond_predictor_impl.history_update(seq_no, piece, pc, resolve_dir, next_pc);
+        //cbp2016_tage_sc_l.history_update(seq_no, piece, pc, br_type, pred_dir, resolve_dir, next_pc);
+        //cond_predictor_impl.history_update(seq_no, piece, pc, resolve_dir, next_pc);
     }
     else
     {
-        cbp2016_tage_sc_l.TrackOtherInst(pc, br_type, pred_dir, resolve_dir, next_pc);
+        //cbp2016_tage_sc_l.TrackOtherInst(pc, br_type, pred_dir, resolve_dir, next_pc);
     }
 
 }
@@ -146,8 +172,8 @@ void notify_instr_execute_resolve(uint64_t seq_no, uint8_t piece, uint64_t pc, c
         {
             const bool _resolve_dir = _exec_info.taken.value();
             const uint64_t _next_pc = _exec_info.next_pc;
-            cbp2016_tage_sc_l.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
-            cond_predictor_impl.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
+            //cbp2016_tage_sc_l.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
+            //cond_predictor_impl.update(seq_no, piece, pc, _resolve_dir, pred_dir, _next_pc);
             tage.update(pc, piece, _resolve_dir);
         }
         else
@@ -176,6 +202,6 @@ void notify_instr_commit(uint64_t seq_no, uint8_t piece, uint64_t pc, const bool
 //
 void endCondDirPredictor ()
 {
-    cbp2016_tage_sc_l.terminate();
-    cond_predictor_impl.terminate();
+    //cbp2016_tage_sc_l.terminate();
+    //cond_predictor_impl.terminate();
 }
