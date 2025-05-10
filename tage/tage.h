@@ -42,7 +42,7 @@ class TAGE {
     std::bitset<GHR_LEN> GHR;
 
     // tagged tables
-    std::array<Table, N_TABLES> tables;
+    std::vector<Table> tables;
 
     // base predictor
     std::unique_ptr<BasePredictorInterface> base_predictor = std::make_unique<BasePredictor>();
@@ -105,7 +105,7 @@ class TAGE {
         for(; table_idx >= 0; table_idx--) {
             uint64_t h = hash(pc, GHR, T_GHR_LEN[table_idx]);
             try {
-                const TableEntry provider_entry = tables[table_idx].get(h);
+                const TableEntry provider_entry = tables.at(table_idx).get(h);
 
                 prediction.provider_idx = table_idx;
                 prediction.provider_pred = provider_entry.prediction.get_prediction();
@@ -126,7 +126,7 @@ class TAGE {
             std::cout << "hash: " << std::bitset<64>(h) << std::endl << std::endl;
             */
             try {
-                const TableEntry alternative_entry = tables[table_idx].get(h);
+                const TableEntry alternative_entry = tables.at(table_idx).get(h);
 
                 prediction.alt_idx = table_idx;
                 prediction.alt_pred = alternative_entry.prediction.get_prediction();
@@ -142,17 +142,25 @@ class TAGE {
 
 public:
 
+    explicit TAGE() {
+        tables.reserve(N_TABLES);
+
+        for(int i = 0; i < N_TABLES; i++) {
+            tables.emplace_back(i);
+        }
+    }
+
     bool predict(const uint64_t seq_no, const uint8_t /* piece */ ) {
         const Prediction p = get_prediction(seq_no);
 
         if (p.provider_is_weak) {
             // actual prediction will come from alternative predictor
-            if (p.alt_idx != DEFAULT_PROVIDER) tables[p.alt_idx].total_predictions += 1;
+            if (p.alt_idx != DEFAULT_PROVIDER) tables.at(p.alt_idx).total_predictions += 1;
             return p.alt_pred;
         }
 
         // actual prediction comes from provider
-        if (p.provider_idx != DEFAULT_PROVIDER) tables[p.provider_idx].total_predictions += 1;
+        if (p.provider_idx != DEFAULT_PROVIDER) tables.at(p.provider_idx).total_predictions += 1;
         return p.provider_pred;
     }
 
@@ -169,7 +177,7 @@ public:
                 // try to allocate a new entry
                 for(int idx = 0; idx < N_TABLES; idx++) {
                     uint64_t h = hash(seq_no, GHR, T_GHR_LEN[idx]);
-                    const bool allocation_success = tables[idx].allocate(h);
+                    const bool allocation_success = tables.at(idx).allocate(h);
                     if (allocation_success) break;
                 }
             }
@@ -185,7 +193,7 @@ public:
         if (prediction.provider_pred != prediction.alt_pred) {
             try {
                 uint64_t h = hash(seq_no, GHR, T_GHR_LEN[prediction.provider_idx]);
-                TableEntry& provider_entry = tables[prediction.provider_idx].get(h);
+                TableEntry& provider_entry = tables.at(prediction.provider_idx).get(h);
                 actual_outcome == prediction.provider_pred ? provider_entry.u.increase() : provider_entry.u.decrease();
             } catch (...) {
                 std::cout << "Provider prediction entry UNEXPECTEDLY not found (1)" << std::endl;
@@ -196,7 +204,7 @@ public:
         if (prediction.provider_pred == actual_outcome) {
             try {
                 uint64_t h = hash(seq_no, GHR, T_GHR_LEN[prediction.provider_idx]);
-                TableEntry& provider_entry = tables[prediction.provider_idx].get(h);
+                TableEntry& provider_entry = tables.at(prediction.provider_idx).get(h);
                 //if (actual_outcome)
                     provider_entry.prediction.update_prediction(actual_outcome);
                 //else
@@ -212,7 +220,7 @@ public:
         if (prediction.provider_pred != actual_outcome) {
 
             uint64_t h = hash(seq_no, GHR, T_GHR_LEN[prediction.provider_idx]);
-            TableEntry& provider_entry = tables[prediction.provider_idx].get(h);
+            TableEntry& provider_entry = tables.at(prediction.provider_idx).get(h);
 
             //if (actual_outcome)
                 provider_entry.prediction.update_prediction(actual_outcome);
@@ -222,7 +230,7 @@ public:
             // try to allocate a new entry
             for(; idx < N_TABLES; idx++) {
                 uint64_t h = hash(seq_no, GHR, T_GHR_LEN[idx]);
-                const bool allocation_success = tables[idx].allocate(h);
+                const bool allocation_success = tables.at(idx).allocate(h);
                 if (allocation_success) break;
             }
         }
@@ -231,7 +239,7 @@ public:
         if (idx >= N_TABLES) {
             for(int i = prediction.provider_idx + 1; i < N_TABLES; i++) {
                 uint64_t h = hash(seq_no, GHR, T_GHR_LEN[i]);
-                tables[i].decrease_u(h);
+                tables.at(i).decrease_u(h);
             }
         }
 
@@ -239,7 +247,7 @@ public:
         // reset of u
         if (num_branches == 0) {
             for(int i = 0; i < N_TABLES; i++)
-                tables[i].reset_u(hard_reset);
+                tables.at(i).reset_u(hard_reset);
 
             hard_reset = !hard_reset;
         }
@@ -267,7 +275,7 @@ public:
 
         // add each table size
         for(int table_idx = 0; table_idx < N_TABLES; table_idx++)
-            total_size += tables[table_idx].get_bit_size();
+            total_size += tables.at(table_idx).get_bit_size();
 
         // add base predictor size
         total_size += base_predictor->get_bit_size();
@@ -282,8 +290,8 @@ public:
     void print_statistics() const {
         for (int i = 0; i < N_TABLES; i++) {
             std::cout << "Table[" << i <<
-                "]\n\t occupation: " << tables[i].get_occupation() << " / " << WAY_SIZE * ASSOCIATIVITY
-            << "\n\t total predictions: " << tables[i].total_predictions << std::endl;
+                "]\n\t occupation: " << tables.at(i).get_occupation() << " / " << WAY_SIZE * ASSOCIATIVITY
+            << "\n\t total predictions: " << tables.at(i).total_predictions << std::endl;
         }
     }
 };
