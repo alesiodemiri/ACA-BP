@@ -74,8 +74,9 @@ public:
     }
 
     /**
-     * Allocates a new entry. Assumes that the spot is free in the table.
+     * Allocates a new entry.
      * @param hash hash of the branch performed with the PC and the correct portion of GHR.
+     * @returns true if the allocation succeeded, false otherwise
      */
     bool allocate(const uint64_t hash) {
         const bits_reg index(TAG_LEN, hash);
@@ -86,7 +87,7 @@ public:
         // check if there is a useless entry and allocate it
         for (auto& way : table)
             if (way.at(index.to_ullong()).u.get() == 0) {
-                way.at(index.to_ullong()).tag = tag;
+                way.at(index.to_ullong()).tag.copy_from(tag);
                 way.at(index.to_ullong()).prediction = FSM();
                 return true;
             }

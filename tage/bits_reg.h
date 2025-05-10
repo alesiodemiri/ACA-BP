@@ -70,14 +70,12 @@ public:
     /**
      * Copies content from the other object to this
      * @param other register to copy data from
-     * @return reference to the modified object (this)
      */
-    bits_reg& operator=(const bits_reg& other) {
+    void copy_from(const bits_reg& other) {
         if (this != &other) {  // Check for self-assignment
             data = other.data;   // Copy the data bitset
             applyMask();
         }
-        return *this;  // Allow chaining
     }
 
 
