@@ -18,46 +18,51 @@ struct TableEntry {
 
 class Table {
 
-    std::array<TableEntry, T_SIZE> table;
+    std::array<std::array<TableEntry, WAY_SIZE>, ASSOCIATIVITY> table;
 
-    public:
+public:
 
+    // counter for all the predictions coming from this table
+    long total_predictions = 0;
+
+
+    /**
+     * @param hash hash of the branch performed with the PC and the correct portion of GHR.
+     * @return a reference to the table entry, in case the tags match. Throws an exception otherwise.
+     */
     TableEntry& get(const uint64_t hash) {
         const std::bitset<IDX_LEN> index(hash);
         const std::bitset<TAG_LEN> tag(hash >> IDX_LEN);
 
-        assert(index.to_ullong() < table.size());
+        assert(index.to_ullong() < table[0].size());
 
-        if (table[index.to_ullong()].tag == tag) {
-            return table[index.to_ullong()];
-        } else {
-            throw std::runtime_error("Tag mismatch");
-        }
+        for (auto& way : table)
+            if (way[index.to_ullong()].tag == tag) {
+                return way[index.to_ullong()];
+            }
+
+        // no entry matches the tags
+        throw std::runtime_error("Tag mismatch");
     }
 
-    [[nodiscard]] bool can_allocate(const uint64_t hash) const {
+    /**
+     * Allocates a new entry. Assumes that the spot is free in the table.
+     * @param hash hash of the branch performed with the PC and the correct portion of GHR.
+     */
+    bool allocate(const uint64_t hash) {
         const std::bitset<IDX_LEN> index(hash);
         const std::bitset<TAG_LEN> tag(hash >> IDX_LEN);
 
-        assert(index.to_ullong() < table.size());
+        assert(index.to_ullong() < table[0].size());
 
         // check if there is a useless entry and allocate it
-        if (table[index.to_ullong()].u.get() == 0) {
-            return true;
-        }
+        for (auto& way : table)
+            if (way[index.to_ullong()].u.get() == 0) {
+                way[index.to_ullong()].tag = tag;
+                way[index.to_ullong()].prediction = FSM();
+                return true;
+            }
         return false;
-
-    }
-
-    void allocate(const uint64_t hash) {
-        const std::bitset<IDX_LEN> index(hash);
-        const std::bitset<TAG_LEN> tag(hash >> IDX_LEN);
-
-        if(!can_allocate(hash)) std::cerr << "Can't allocate table entry" << std::endl;
-
-        // allocate the new entry
-        table[index.to_ullong()].tag = tag;
-        table[index.to_ullong()].prediction = FSM();
     }
 
     void decrease_u(const uint64_t hash) {
@@ -66,23 +71,43 @@ class Table {
 
         assert(index.to_ullong() < table.size());
 
-        // decrease u
-        table[index.to_ullong()].u.decrease();
+        // decrease u for all entries that share the same index
+        for (auto& way : table)
+            way[index.to_ullong()].u.decrease();
     }
 
+    /**
+     * performs graceful reset of the u counter for ALL the table entries.
+     * @param hard_reset specifies the bit to reset is the most significant (true) or least significant (false).
+     */
     void reset_u(const bool hard_reset) {
-        for (int i = 0; i < T_SIZE; i++)
-            if(hard_reset)
-                table[i].u.bits.reset(1);    // set most significant bit to zero
-            else
-                table[i].u.bits.reset(0);    // set least significant bit to zero
+        for (auto& way : table)
+            for (int i = 0; i < way.size(); i++)
+                if(hard_reset)
+                    way[i].u.bits.reset(1);    // set most significant bit to zero
+                else
+                    way[i].u.bits.reset(0);    // set least significant bit to zero
     }
 
-    void print() const {
-        for (const auto& entry : table)
-            std::cout << "TAG: "  << entry.tag << " Pred: " << entry.prediction.get_state() << " u: " << entry.u.bits << std::endl;
+    /**
+     * @return the size of the table in BITS, as if it was implemented in HW.
+     */
+    [[nodiscard]] int get_bit_size() const {
+        return ASSOCIATIVITY * WAY_SIZE * (TAG_LEN + FSM::get_bit_size() + 2);
     }
 
+    /**
+     * @return the number of entries that have a tag different from 0.
+     */
+    [[nodiscard]] int get_occupation() const {
+        int filled_entries = 0;
+        for (auto& way : table)
+            for (int i = 0; i < WAY_SIZE; i++)
+                if (way[i].tag.to_ullong() != 0)
+                    filled_entries += 1;
+
+        return filled_entries;
+    }
 };
 
 #endif

@@ -12,4 +12,6 @@ public:
     virtual void update(uint64_t seq_no, uint8_t piece, bool actual_outcome) = 0;
 
     virtual void print() = 0;
+
+    virtual int get_bit_size() = 0;
 };

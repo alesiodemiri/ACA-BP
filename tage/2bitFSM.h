@@ -48,6 +48,10 @@ class FSM{
       return state == '2' || state == '3';
     }
 
+  [[nodiscard]] static int get_bit_size() {
+      return 2;
+    }
+
 };
 
 #endif //INC_2BITFSM_H

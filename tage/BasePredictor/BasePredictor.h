@@ -27,6 +27,10 @@ public:
         }
         std::cout << std::endl;
     }
+
+    int get_bit_size() override {
+        return DEFAULT_SIZE * FSM::get_bit_size();
+    }
 };
 
 #endif

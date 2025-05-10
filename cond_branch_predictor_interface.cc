@@ -32,17 +32,15 @@ void printPredictorConstants() {
         std::cout << T_GHR_LEN[i];
         if (i < N_TABLES - 1) std::cout << ", ";
     }
-    std::cout << "}\n";
+    std::cout << " }\n";
 
     std::cout << "GHR_LEN = " << GHR_LEN << '\n';
     std::cout << "IDX_LEN = " << static_cast<int>(IDX_LEN) << '\n';
     std::cout << "TAG_LEN = " << static_cast<int>(TAG_LEN) << '\n';
-    std::cout << "T_SIZE = " << T_SIZE << '\n';
+    std::cout << "T_SIZE = " << WAY_SIZE << '\n';
     std::cout << "RESET_INTERVAL = " << RESET_INTERVAL << "\n\n";
 
-    std::cout << "TOT_SIZE = " << ((DEFAULT_SIZE * 2) + // size of the base predictor table (2 bits for a FSM)
-                                    (TAG_LEN + 2 + 2) * // size of a table entry (2 bits FSM, 2 bits for u)
-                                        N_TABLES * T_SIZE) / 8000
+    std::cout << "TOT_SIZE = " << tage.get_bit_size() / 8000
     << " Kilo Bytes (192 MAX)\n";
 
     std::cout << "=================== =================== ===================\n" << std::endl;
@@ -202,6 +200,7 @@ void notify_instr_commit(uint64_t seq_no, uint8_t piece, uint64_t pc, const bool
 //
 void endCondDirPredictor ()
 {
+    tage.print_statistics();
     //cbp2016_tage_sc_l.terminate();
     //cond_predictor_impl.terminate();
 }
