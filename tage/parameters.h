@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-constexpr uint8_t K = 16;                           // number of bits used to index the DEFAULT PREDICTOR
+constexpr uint8_t K = 18;                           // number of bits used to index the DEFAULT PREDICTOR
 constexpr uint64_t DEFAULT_SIZE = (1 << K);         // number of entries in the DEFAULT PREDICTOR
 
 constexpr uint8_t N_TABLES = 8;                     // number of tagged tables
@@ -13,10 +13,10 @@ constexpr uint16_t GHR_LEN = T_GHR_LEN[N_TABLES - 1];
 
 
 constexpr uint16_t TAG_LEN_S[] = {6, 6, 8, 11, 11, 11, 12, 12};  // number of bits used as tags in the given tagged table
-constexpr uint8_t IDX_LEN = 11;                     // number of bits used to index a tagged table
+constexpr uint8_t IDX_LEN = 13;                     // number of bits used to index a tagged table
 constexpr uint64_t WAY_SIZE = (1 << IDX_LEN);
 
-constexpr uint8_t ASSOCIATIVITY = 4;                 // number of entries sharing the same index in the table
+constexpr uint8_t ASSOCIATIVITY = 1;                 // number of entries sharing the same index in the table
 
 // statically check that the number of bits used for tags and indexing is <= 64 in each table
 constexpr bool validate_tag_lengths() {

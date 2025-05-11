@@ -22,8 +22,12 @@ public:
     }
 
     void print() override {
-        for (unsigned int i = 0; i < DEFAULT_SIZE; i += 64) {
-            std::cout << i << "\t\t" << table[i].get_state() << std::endl;
+        std::cout << "=== Base Table ===" << std::endl;
+        std::cout << std::string(5 + ASSOCIATIVITY * 17, '-') << "\n";
+
+        for (int idx = 0; idx < DEFAULT_SIZE; ++idx) {
+            std::bitset<K> index_bits(idx);
+            std::cout << index_bits << " | " << table[idx].get_state() << "\n";
         }
         std::cout << std::endl;
     }

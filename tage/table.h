@@ -23,6 +23,13 @@ struct TableEntry {
     explicit TableEntry(const uint8_t table_idx) : tag(TAG_LEN_S[table_idx]) {}
 };
 
+inline std::ostream& operator<<(std::ostream& os, const TableEntry& entry) {
+    os << entry.tag << " "
+       << entry.u.bits << " "
+       << entry.prediction.get_state();
+    return os;
+}
+
 
 class Table {
     const uint8_t table_idx;     // tagged table index [0 : N_TABLES - 1]
@@ -60,7 +67,7 @@ public:
      */
     TableEntry& get(const uint64_t hash) {
         const bits_reg index(IDX_LEN, hash);
-        const bits_reg tag(hash >> IDX_LEN);
+        const bits_reg tag(TAG_LEN_S[table_idx], hash >> IDX_LEN);
 
         assert(index.to_ullong() < table[0].size());
 
@@ -78,27 +85,28 @@ public:
      * @param hash hash of the branch performed with the PC and the correct portion of GHR.
      * @returns true if the allocation succeeded, false otherwise
      */
-    bool allocate(const uint64_t hash) {
-        const bits_reg index(TAG_LEN, hash);
-        const bits_reg tag(hash >> IDX_LEN);
+    bool allocate(const uint64_t hash, const bool actual_outcome) {
+        const bits_reg index(IDX_LEN, hash);
+        const bits_reg tag(TAG_LEN_S[table_idx], hash >> IDX_LEN);
 
         assert(index.to_ullong() < table[0].size());
 
         // check if there is a useless entry and allocate it
-        for (auto& way : table)
+        for (auto& way : table) {
             if (way.at(index.to_ullong()).u.get() == 0) {
                 way.at(index.to_ullong()).tag.copy_from(tag);
-                way.at(index.to_ullong()).prediction = FSM();
+                way.at(index.to_ullong()).prediction = FSM(actual_outcome);
                 return true;
             }
+        }
         return false;
     }
 
     void decrease_u(const uint64_t hash) {
-        const bits_reg index(TAG_LEN, hash);
-        const bits_reg tag(hash >> IDX_LEN);
+        const bits_reg index(IDX_LEN, hash);
+        //const bits_reg tag(hash >> IDX_LEN);
 
-        assert(index.to_ullong() < table.size());
+        assert(index.to_ullong() < table[0].size());
 
         // decrease u for all entries that share the same index
         for (auto& way : table)
@@ -137,6 +145,31 @@ public:
 
         return filled_entries;
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const Table& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Table& t) {
+    os << "=== Table [" << static_cast<int>(t.table_idx) << "] ===\n";
+
+    os << "Idx ";
+    for (int way = 0; way < ASSOCIATIVITY; ++way) {
+        os << "| Way " << way << "        ";
+    }
+    os << "\n";
+
+    os << std::string(5 + ASSOCIATIVITY * 17, '-') << "\n";
+
+    for (int idx = 0; idx < WAY_SIZE; ++idx) {
+        std::bitset<IDX_LEN> index_bits(idx);
+        os << index_bits << " ";
+        for (int way = 0; way < ASSOCIATIVITY; ++way) {
+            os << "| " << t.table[way][idx] << " ";
+        }
+        os << "\n";
+    }
+
+    return os;
+}
 
 #endif

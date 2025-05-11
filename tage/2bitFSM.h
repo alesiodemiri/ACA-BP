@@ -12,6 +12,15 @@ class FSM{
   char state = '2';
   public:
 
+    FSM() : state('2') {};
+
+    FSM(const bool correct_prediction) {
+      if (correct_prediction)
+        state = '2';
+      else
+        state = '3';
+    }
+
     void update_prediction(const bool outcome){
       if (outcome) {  // Branch was TAKEN
         if (state == '2' || state == '3') state = '1';
@@ -41,7 +50,16 @@ class FSM{
     }
 
   [[nodiscard]] char get_state() const {
-    return state;
+      switch (state) {
+        case '0':
+          return 'N';
+        case '1':
+          return 'T';
+        case '2':
+          return 't';
+        default:
+          return 'n';
+      }
   }
 
   [[nodiscard]] bool is_weak() const {
