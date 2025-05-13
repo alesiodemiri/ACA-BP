@@ -35,14 +35,17 @@ void printPredictorConstants() {
     std::cout << " }\n";
 
     std::cout << "GHR_LEN = " << GHR_LEN << '\n';
-    std::cout << "IDX_LEN = " << static_cast<int>(IDX_LEN) << '\n';
     std::cout << "TAG_LEN_S = { ";
     for (size_t i = 0; i < N_TABLES; ++i) {
         std::cout << TAG_LEN_S[i];
         if (i < N_TABLES - 1) std::cout << ", ";
     }
+    std::cout << "IDX_LEN_S = { ";
+    for (size_t i = 0; i < N_TABLES; ++i) {
+        std::cout << IDX_LEN_S[i];
+        if (i < N_TABLES - 1) std::cout << ", ";
+    }
     std::cout << " }\n";
-    std::cout << "T_SIZE = " << WAY_SIZE << '\n';
     std::cout << "RESET_INTERVAL = " << RESET_INTERVAL << "\n\n";
 
     std::cout << "TOT_SIZE = " << tage.get_bit_size() / 8000

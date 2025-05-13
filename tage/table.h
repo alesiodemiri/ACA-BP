@@ -34,6 +34,9 @@ inline std::ostream& operator<<(std::ostream& os, const TableEntry& entry) {
 class Table {
     const uint8_t table_idx;     // tagged table index [0 : N_TABLES - 1]
     const uint8_t TAG_LEN;
+    const uint8_t IDX_LEN;
+
+    const uint64_t WAY_SIZE;
 
 
     std::array<std::vector<TableEntry>, ASSOCIATIVITY> table;
@@ -51,7 +54,9 @@ public:
 
     explicit Table(const uint8_t table_idx_) :
             table_idx(check_table_number(table_idx_)),
-            TAG_LEN(TAG_LEN_S[table_idx])
+            TAG_LEN(TAG_LEN_S[table_idx]),
+            IDX_LEN(IDX_LEN_S[table_idx]),
+            WAY_SIZE(1 << IDX_LEN)
     {
         for (auto& way : table) {
             way.reserve(WAY_SIZE);
@@ -146,6 +151,10 @@ public:
         return filled_entries;
     }
 
+    [[nodiscard]] int get_tot_entries() const {
+        return WAY_SIZE * ASSOCIATIVITY;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const Table& t);
 };
 
@@ -160,8 +169,8 @@ inline std::ostream& operator<<(std::ostream& os, const Table& t) {
 
     os << std::string(5 + ASSOCIATIVITY * 17, '-') << "\n";
 
-    for (int idx = 0; idx < WAY_SIZE; ++idx) {
-        std::bitset<IDX_LEN> index_bits(idx);
+    for (int idx = 0; idx < t.WAY_SIZE; ++idx) {
+        bits_reg index_bits(t.IDX_LEN, idx);
         os << index_bits << " ";
         for (int way = 0; way < ASSOCIATIVITY; ++way) {
             os << "| " << t.table[way][idx] << " ";

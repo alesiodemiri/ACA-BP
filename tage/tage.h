@@ -255,7 +255,7 @@ public:
     void print_statistics() const {
         for (int i = 0; i < N_TABLES; i++) {
             std::cout << "Table[" << i <<
-                "]\n\t occupation: " << tables.at(i).get_occupation() << " / " << WAY_SIZE * ASSOCIATIVITY
+                "]\n\t occupation: " << tables.at(i).get_occupation() << " / " << tables.at(i).get_tot_entries()
             << "\n\t total predictions: " << tables.at(i).total_predictions << std::endl;
         }
     }
